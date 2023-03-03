@@ -1,8 +1,6 @@
 package algoritmo;
 
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Poupador extends ProgramaPoupador {
 	
@@ -14,6 +12,7 @@ public class Poupador extends ProgramaPoupador {
     private static final int BANCO = 3;
     private static final int MOEDA = 4;
     private static final int PASTILHA = 5;
+    private static final int LADRAO = 200;
 
     // Ação do poupador
     private static final int FICAR_PARADO = 0;
@@ -31,12 +30,11 @@ public class Poupador extends ProgramaPoupador {
 	public int acao() {
 		Point posicaoAtual = sensor.getPosicao();
 	    int[] visao = sensor.getVisaoIdentificacao();
-//	    int direcao = FICAR_PARADO;
 	    posX = (int) posicaoAtual.getX();
         posY = (int) posicaoAtual.getY();
-
-        int proxMovimento = 0;
-        int distanciaMinima = Integer.MAX_VALUE;
+        
+        int melhorMovimento = 0;
+        int melhorValor = Integer.MIN_VALUE;
 	    
 	    if(mapa == null)
 	    {
@@ -48,29 +46,35 @@ public class Poupador extends ProgramaPoupador {
         }
 	    
 		this.processarVisao(visao, posicaoAtual);
-//		this.movimentarAgente(visao, posicaoAtual);
-			
-//		return (int) (Math.random() * 5);
-//		return proxMovimento;
-		
-		// Procura a moeda mais próxima
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                if (mapa[i][j] == 4) {
-                    int distancia = calculaDistancia(posX, posY, i, j);
-                    if (distancia < distanciaMinima) {
-                        distanciaMinima = distancia;
-                        proxMovimento = direcaoMovimento(posX, posY, i, j);
-                    }
-                }
-                else
-                {
-                	proxMovimento = (int) (Math.random() * 5);
-                }
-            }
+        
+     // Loop pelos possíveis movimentos
+        for (int i = 1; i <= 4; i++) {
+
+        	if(
+        			!(posicaoAtual.y == 0 && i == MOVER_CIMA)
+        			&& !(posicaoAtual.y == 29 && i == MOVER_BAIXO)
+        			&& !(posicaoAtual.x == 0 && i == MOVER_ESQUERDA)
+        			&& !(posicaoAtual.x == 29 && i == MOVER_DIREITA)
+        	  )
+        	{
+        		Point proximaPosicao = calcularProximaPosicao(posicaoAtual, i);
+        		
+        		// Verifica se a próxima posição é uma parede ou está fora do mapa
+        		if (mapa[proximaPosicao.x][proximaPosicao.y] != PAREDE && mapa[proximaPosicao.x][proximaPosicao.y] != FORA_DO_AMBIENTE) {
+        			
+        			// Avalia o valor da próxima posição
+        			int valor = avaliarPosicao(mapa, visao, proximaPosicao);
+        			
+        			// Verifica se a próxima posição é melhor que a posição atual
+        			if (valor > melhorValor) {
+        				melhorValor = valor;
+        				melhorMovimento = i;
+        			}
+        		}	
+        	}
         }
 
-        return proxMovimento;
+        return melhorMovimento;
 	}
 	
 	public void inicializandoMapa() {
@@ -110,24 +114,52 @@ public class Poupador extends ProgramaPoupador {
         }
         return false;
     }
-	
-	private int calculaDistancia(int x1, int y1, int x2, int y2) {
-        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
-    }
+    
+    private Point calcularProximaPosicao(Point posicaoAtual, int movimento) {
 
-    private int direcaoMovimento(int x1, int y1, int x2, int y2) {
-        if (x1 == x2 && y1 == y2) {
-            return 0;
-        } else if (x1 == x2 && y1 > y2) {
-            return 1;
-        } else if (x1 == x2 && y1 < y2) {
-            return 2;
-        } else if (y1 == y2 && x1 < x2) {
-            return 3;
-        } else if (y1 == y2 && x1 > x2) {
-            return 4;
+        Point proximaPosicao = new Point(posicaoAtual);
+
+        switch (movimento) {
+            case 1: // mover_cima
+                proximaPosicao.translate(0, -1);
+                break;
+            case 2: // mover_baixo
+                proximaPosicao.translate(0, 1);
+                break;
+            case 3: // mover_direita
+                proximaPosicao.translate(1, 0);
+                break;
+            case 4: // mover_esquerda
+                proximaPosicao.translate(-1, 0);
+                break;
         }
-        return (int) (Math.random() * 5);
+
+        return proximaPosicao;
+    }
+    
+    private int avaliarPosicao(int[][] mapa, int[] visao, Point posicao) {
+
+        int valor = 0;
+
+        // Verifica se a posição tem uma moeda ou banco
+        if (mapa[posicao.x][posicao.y] == MOEDA || mapa[posicao.x][posicao.y] == BANCO) {
+            valor += 10;
+        }
+
+        // Verifica se a posição tem o ladrão
+        for (int i = 0; i < visao.length; i++) {
+            if (visao[i] >= LADRAO) { // O ladrão é representado pelo número 6
+                valor -= 100;
+                break;
+            }
+        }
+
+        // Verifica se a posição é uma parede
+        if (mapa[posicao.x][posicao.y] == 1) {
+            valor -= 5;
+        }
+
+        return valor;
     }
 
 }
