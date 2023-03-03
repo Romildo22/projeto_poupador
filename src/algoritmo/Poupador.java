@@ -73,7 +73,6 @@ public class Poupador extends ProgramaPoupador {
         		}	
         	}
         }
-
         return melhorMovimento;
 	}
 	
